@@ -5,6 +5,8 @@ Commutative rendering
 
 # Survey
 
+In the world of computer graphics, there are two general architectures for rendering objects.
+
 ## Immediate mode
 
 Every object is responsible for drawing itself
@@ -82,3 +84,45 @@ This is certainly true for depth-buffered rasterization without blending, but it
 
 ### Multipass rendering
 
+To coordinate order dependent operations and to support complex effects (like picking or shadows), we could introduce the concept of a 'pass'.  Each pass stores a target frame buffer and enqueues some list of rendering operations which are applied.  The order in which passes are rendered is fixed and controlled outside the scope of any individual module.
+
+### Implementation
+
+To implement this, a small wrapper layer over WebGL would be created.  This wrapper would be responsible for managing all frame buffer objects, shaders and buffers.  Shaders and frame buffers would be cached within the wrapper layer directly and reference counted.  As an example of how this could work, here is some psuedocode:
+
+
+```
+commutativeGL = initCommutativeWrapper()
+
+for each subsystem:
+   subsystem.init(commutativeGL)
+
+while(true) {
+
+  //Call draw on each object and buffer all commands
+  for each object:
+     object.draw(commutativeGL)
+
+  //Draw the frame
+  commutativeGL.flush()
+}
+```
+
+This would also have the advantage of simplifying multipass code since multiple passes could be combined into one function:
+
+```
+draw(gl, object) {
+  
+  gl.pass('forward')
+    .shader(object.shader)
+    .setUniforms(object.uniforms)
+    .draw(object.geometry)
+
+  gl.pass('pick')
+    .shader(object.pickShader)
+    .setUniforms(object.uniforms)
+    .draw(object.geometry)
+}
+```
+
+It might also be possible to use this coordinate higher level data like uniforms or texture state changes across multiple objects in some more efficient way.
