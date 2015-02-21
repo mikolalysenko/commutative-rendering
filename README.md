@@ -126,3 +126,21 @@ draw(gl, object) {
 ```
 
 It might also be possible to use this coordinate higher level data like uniforms or texture state changes across multiple objects in some more efficient way.
+
+Internally, each pass would maintain a queue of draw calls with associated shaders + geometry.  To provide a consistent ordering, we would sort each of them lexicographically according to the following properties:
+
+```
+FBO > Blend order > Shader > Vertex buffer/index buffer binding > Textures > Uniforms
+```
+
+Draw calls would be iterated over in this order and state machine changes applied if and only if they vary from one uniform call to the next.
+
+#### Blending
+
+To handle blending, we can add an extra z-index parameter to each draw call which determines the order in which it is drawn.  This allows for at least object level blending to be done consistently, though it would be expensive.  More accurate ordering would probably require order independent transparency or some related technology.
+
+### What is in a draw call?
+
+We can think of each draw call as an operation that takes in the entire state of the WebGL context as input as well as some parameters relating to the offset/count/primitive type to be drawn.
+
+The state of a WebGL context used by a draw call includes the shaders, 
